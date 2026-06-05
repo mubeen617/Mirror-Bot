@@ -1,0 +1,127 @@
+binance:
+  symbol: "BTCUSDT"
+  testnet: false
+
+grid:
+  initial_capital: 500.0
+  levels: 20
+  range_pct: 0.05
+  restart_threshold: 0.10
+
+scaling:
+  poll_interval_seconds: 60
+  ratio_smoothing_periods: 5
+  max_scale_factor: 500.0
+  min_scale_factor: 10.0
+  fundednext_account_size: 10000.0
+
+risk:
+  daily_loss_limit_pct: 0.04
+  max_drawdown_pct: 0.10
+  safety_margin: 0.80
+  max_single_order_pct: 0.02
+
+regime:
+  atr_ranging_threshold: 36
+  atr_trending_threshold: 92
+  slope_bull_threshold: 0.004
+  slope_bear_threshold: -0.004
+  slope_hard_threshold: 0.005
+  poll_interval_seconds: 60
+
+crash_monitor:
+  drop_threshold_pct: 0.015
+  window_seconds: 300
+  poll_interval_seconds: 5
+  weekend_drop_threshold: 0.020
+  require_manual_restart: true
+
+mt5:
+  login: "${MT5_LOGIN}"
+  password: "${MT5_PASSWORD}"
+  server: "${MT5_SERVER}"
+  symbol: "BTCUSD"
+  deviation: 20
+  magic_number: 20260001
+  demo_mode: true
+  connection_timeout_seconds: 30
+  reconnect_interval_seconds: 10
+  max_reconnect_attempts: 10
+
+reconciler:
+  enabled: false
+  interval_seconds: 60
+  drift_threshold_btc: 0.001
+  max_corrections_per_day: 10
+
+dashboard:
+  host: "127.0.0.1"
+  port: 5000
+
+telegram:
+  enabled: false
+
+whatsapp:
+  enabled: true
+  provider: "textmebot"
+
+multi_pair:
+  enabled: true
+  usdt_usd_rate: "auto"
+  usdt_fallback_rate: 1.0
+
+pairs:
+  BTCUSDT:
+    enabled: true
+    mt5_symbol: "BTCUSD"
+    grid_capital: 60.0
+    mirror_enabled: true
+    regime:
+      atr_ranging_threshold: 36
+      atr_trending_threshold: 92
+      slope_bull_threshold: 0.004
+      slope_bear_threshold: -0.004
+      slope_hard_threshold: 0.005
+      poll_interval_seconds: 60
+    crash_monitor:
+      drop_threshold_pct: 0.015
+      window_seconds: 300
+      poll_interval_seconds: 5
+      weekend_drop_threshold: 0.020
+
+  ETHUSDT:
+    enabled: true
+    mt5_symbol: "ETHUSD"
+    grid_capital: 30.0
+    mirror_enabled: true
+    regime:
+      atr_ranging_threshold: 45
+      atr_trending_threshold: 120
+      slope_bull_threshold: 0.005
+      slope_bear_threshold: -0.005
+      slope_hard_threshold: 0.007
+      poll_interval_seconds: 60
+    crash_monitor:
+      drop_threshold_pct: 0.018
+      window_seconds: 300
+      poll_interval_seconds: 5
+      weekend_drop_threshold: 0.025
+
+  ADAUSDT:
+    enabled: false
+    mt5_symbol: "ADAUSD"
+    grid_capital: 10.0
+    mirror_enabled: false
+    regime:
+      atr_ranging_threshold: 0.008
+      atr_trending_threshold: 0.025
+      slope_bull_threshold: 0.003
+      slope_bear_threshold: -0.003
+      slope_hard_threshold: 0.006
+      poll_interval_seconds: 60
+    crash_monitor:
+      drop_threshold_pct: 0.020
+      window_seconds: 300
+      poll_interval_seconds: 5
+      weekend_drop_threshold: 0.030
+

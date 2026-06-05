@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Grid Mirror Bot — Real-time algorithmic trading dashboard with regime detection, crash monitoring, and live fill feed." />
+    <title>Grid Mirror Bot — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+    <script crossorigin src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+    <style>
+        /* ── DESIGN TOKENS ─────────────────────────────────────── */
+        :root {
+            --bg: #0A0E1A;
+            --surface: #111827;
+            --surface2: #1C2333;
+            --surface3: #242D3F;
+            --border: #2A3448;
+            --text: #E5E7EB;
+            --text-dim: #9CA3AF;
+            --text-muted: #6B7280;
+            --green: #10B981;
+            --green-dim: rgba(16,185,129,.15);
+            --blue: #3B82F6;
+            --blue-dim: rgba(59,130,246,.15);
+            --amber: #F59E0B;
+            --amber-dim: rgba(245,158,11,.15);
+            --red: #EF4444;
+            --red-dim: rgba(239,68,68,.15);
+            --cyan: #06B6D4;
+            --purple: #8B5CF6;
+            --font: 'DM Sans', system-ui, -apple-system, sans-serif;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-xs: 6px;
+            --shadow: 0 4px 24px rgba(0,0,0,.35);
+            --transition: 220ms cubic-bezier(.4,0,.2,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { font-size: 14px; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            line-height: 1.5;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── SCROLLBAR ─────────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+        /* ── LAYOUT ────────────────────────────────────────────── */
+        .app {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 20px 16px 80px;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .app-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cyan), var(--blue), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -.5px;
+        }
+
+        .app-subtitle {
+            color: var(--text-dim);
+            font-size: .85rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .stack { display: flex; flex-direction: column; gap: 16px; }
+
+        /* ── CARD ──────────────────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: border-color var(--transition);
+        }
+
+        .card:hover { border-color: var(--surface3); }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .card-title {
+            font-size: .82rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--text-dim);
+        }
+
+        /* ── REGIME PANEL ──────────────────────────────────────── */
+        .regime-panel {
+            position: relative;
+            overflow: hidden;
+            padding: 24px 28px;
+        }
+
+        .regime-panel::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+        }
+
+        .regime-panel.green::before { background: var(--green); }
+        .regime-panel.blue::before  { background: var(--blue); }
+        .regime-panel.amber::before { background: var(--amber); }
+        .regime-panel.red::before   { background: var(--red); }
+
+        .regime-name {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -.5px;
+            margin-bottom: 8px;
+        }
+
+        .regime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px;
+            border-radius: 999px;
+            font-size: .78rem;
+            font-weight: 600;
+        }
+
+        .regime-badge.green { background: var(--green-dim); color: var(--green); }
+        .regime-badge.amber { background: var(--amber-dim); color: var(--amber); }
+        .regime-badge.red   { background: var(--red-dim);   color: var(--red); }
+
+        .pulse-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            animation: pulse 1.8s ease-in-out infinite;
+        }
+
+        .pulse-dot.green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        .pulse-dot.amber { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+        .pulse-dot.red   { background: var(--red);   box-shadow: 0 0 8px var(--red); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: .4; transform: scale(.7); }
+        }
+
+        .indicator-pills {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            padding: 5px 12px;
+            font-size: .78rem;
+        }
+
+        .pill-label { color: var(--text-muted); }
+        .pill-value { font-weight: 600; color: var(--text); }
+
+        /* ── CRASH BANNER ──────────────────────────────────────── */
+        .crash-banner {
+            background: linear-gradient(135deg, rgba(239,68,68,.12), rgba(239,68,68,.05));
+            border: 1px solid rgba(239,68,68,.35);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            margin-bottom: 16px;
+            animation: crash-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes crash-glow {
+            from { box-shadow: 0 0 20px rgba(239,68,68,.15); }
+            to   { box-shadow: 0 0 40px rgba(239,68,68,.25); }
+        }
+
+        .crash-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--red);
+            margin-bottom: 6px;
+        }
+
+        .crash-detail {
+            color: var(--text-dim);
+            font-size: .85rem;
+        }
+
+        /* ── METRIC CARDS ──────────────────────────────────────── */
+        .metric-value {
+            font-size: 1.55rem;
+            font-weight: 700;
+            letter-spacing: -.5px;
+        }
+
+        .metric-change {
+            font-size: .78rem;
+            font-weight: 500;
+        }
+
+        .metric-change.positive { color: var(--green); }
+        .metric-change.negative { color: var(--red); }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: .78rem;
+            margin-top: 2px;
+        }
+
+        /* ── PROGRESS BAR ──────────────────────────────────────── */
+        .progress-wrap {
+            background: var(--surface2);
+            border-radius: 999px;
+            height: 8px;
+            overflow: hidden;
+            margin: 10px 0 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 999px;
+            transition: width .6s ease;
+        }
+
+        .progress-bar.green { background: linear-gradient(90deg, #10B981, #34D399); }
+        .progress-bar.amber { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+        .progress-bar.red   { background: linear-gradient(90deg, #EF4444, #F87171); }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: .75rem;
+            color: var(--text-muted);
+        }
+
+        /* ── CONTROLS ──────────────────────────────────────────── */
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .control-row:last-child { border-bottom: none; }
+
+        .control-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .control-name {
+            font-weight: 600;
+            font-size: .9rem;
+        }
+
+        .control-status {
+            font-size: .78rem;
+            color: var(--text-muted);
+        }
+
+        .control-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Toggle switch */
+        .toggle {
+            position: relative;
+            width: 44px; height: 24px;
+            background: var(--surface3);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background var(--transition);
+            border: none;
+            outline: none;
+        }
+
+        .toggle.on { background: var(--green); }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 18px; height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: transform var(--transition);
+        }
+
+        .toggle.on::after { transform: translateX(20px); }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 16px;
+            border-radius: var(--radius-xs);
+            font-family: var(--font);
+            font-size: .8rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .btn:hover { background: var(--surface3); }
+
+        .btn-danger {
+            border-color: rgba(239,68,68,.4);
+            color: var(--red);
+        }
+
+        .btn-danger:hover {
+            background: var(--red-dim);
+            border-color: var(--red);
+        }
+
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* ── FILL FEED ─────────────────────────────────────────── */
+        .fill-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .fill-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: .82rem;
+        }
+
+        .fill-row:last-child { border-bottom: none; }
+
+        .fill-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: var(--radius-xs);
+            font-weight: 700;
+            font-size: .72rem;
+            text-transform: uppercase;
+            min-width: 42px;
+            text-align: center;
+        }
+
+        .fill-badge.BUY  { background: var(--green-dim); color: var(--green); }
+        .fill-badge.SELL { background: var(--red-dim);   color: var(--red); }
+
+        .fill-price { color: var(--text); font-weight: 600; }
+        .fill-qty   { color: var(--text-dim); }
+        .fill-time  { color: var(--text-muted); margin-left: auto; font-size: .72rem; }
+
+        /* ── TABLE ─────────────────────────────────────────────── */
+        .regime-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .82rem;
+        }
+
+        .regime-table th {
+            text-align: left;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .regime-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(42,52,72,.5);
+        }
+
+        .regime-table tr:last-child td { border-bottom: none; }
+
+        .regime-cell {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: var(--radius-xs);
+            font-weight: 600;
+            font-size: .72rem;
+        }
+
+        .regime-cell.RANGING,
+        .regime-cell.SLOW_BULL { background: var(--green-dim); color: var(--green); }
+        .regime-cell.SLOW_BEAR { background: var(--amber-dim); color: var(--amber); }
+        .regime-cell.TRENDING_HARD,
+        .regime-cell.CRASH { background: var(--red-dim); color: var(--red); }
+
+        /* ── STATUS BAR ────────────────────────────────────────── */
+        .status-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            z-index: 100;
+            font-size: .78rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-dim);
+        }
+
+        .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+        }
+
+        .status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .status-dot.disconnected { background: var(--red); box-shadow: 0 0 6px var(--red); }
+        .status-dot.active { background: var(--green); animation: pulse 1.8s ease-in-out infinite; }
+        .status-dot.triggered { background: var(--red); animation: pulse 1s ease-in-out infinite; }
+
+        /* ── RESPONSIVE ────────────────────────────────────────── */
+        @media (max-width: 900px) {
+            .grid-4 { grid-template-columns: 1fr 1fr; }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 500px) {
+            .grid-4 { grid-template-columns: 1fr; }
+            .regime-name { font-size: 1.5rem; }
+            .metric-value { font-size: 1.2rem; }
+        }
+
+        /* ── LOADING SHIMMER ───────────────────────────────────── */
+        .shimmer {
+            background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: var(--radius-xs);
+        }
+
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Chart responsive container */
+        .chart-container {
+            width: 100%;
+            height: 260px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    /* Recharts safety guard — dashboard works even if CDN fails */
+    const _RC = typeof Recharts !== 'undefined' ? Recharts : {};
+    const ResponsiveContainer = _RC.ResponsiveContainer || 'div';
+    const LineChart = _RC.LineChart;
+    const Line = _RC.Line;
+    const XAxis = _RC.XAxis;
+    const YAxis = _RC.YAxis;
+    const Tooltip = _RC.Tooltip;
+    const ReferenceLine = _RC.ReferenceLine;
+    const CartesianGrid = _RC.CartesianGrid;
+    const CHARTS_AVAILABLE = typeof Recharts !== 'undefined';
+
+    /* ── CONFIG ────────────────────────────────────────────── */
+    const API = '';  /* same origin */
+    const AUTH_TOKEN = localStorage.getItem('dash_token') || '';
+
+    /* ── HELPERS ───────────────────────────────────────────── */
+    function fmt$(v) { return v != null ? '$' + Number(v).toLocaleString(undefined, {maximumFractionDigits: 0}) : '—'; }
+    function fmtPct(v, d=2) { return v != null ? Number(v).toFixed(d) + '%' : '—'; }
+    function fmtRatio(v) { return v != null ? Number(v).toFixed(1) + 'x' : '—'; }
+    function fmtTime(ts) {
+        if (!ts) return '—';
+        const d = new Date(typeof ts === 'number' && ts > 1e12 ? ts : ts * 1000);
+        return d.toLocaleTimeString();
+    }
+    function fmtUptime(sec) {
+        if (!sec) return '—';
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        return `${h}h ${m}m`;
+    }
+
+    function regimeColor(r) {
+        if (!r) return 'green';
+        if (r === 'RANGING' || r === 'SLOW_BULL') return 'green';
+        if (r === 'SLOW_BEAR') return 'amber';
+        return 'red';
+    }
+
+    function regimeStatus(r) {
+        if (r === 'RANGING' || r === 'SLOW_BULL') return { label: 'Run bots', cls: 'green' };
+        if (r === 'SLOW_BEAR') return { label: 'Pause bots', cls: 'amber' };
+        return { label: 'Emergency stop', cls: 'red' };
+    }
+
+    function progressColor(pct) {
+        if (pct >= 75) return 'red';
+        if (pct >= 50) return 'amber';
+        return 'green';
+    }
+
+    async function postCommand(cmd) {
+        const res = await fetch(API + '/api/command', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + AUTH_TOKEN,
+            },
+            body: JSON.stringify({ command: cmd }),
+        });
+        return res.json();
+    }
+
+    /* ── PAIR BADGE ────────────────────────────────────────── */
+    function PairBadge({ pair }) {
+        const colors = {
+            'BTCUSDT': { bg: 'rgba(247,147,26,.15)', color: '#F7931A' },
+            'ETHUSDT': { bg: 'rgba(98,126,234,.15)', color: '#627EEA' },
+            'ADAUSDT': { bg: 'rgba(0,51,173,.15)', color: '#0033AD' },
+        };
+        const c = colors[pair] || { bg: 'var(--surface2)', color: 'var(--text-dim)' };
+        const label = pair ? pair.replace('USDT', '') : '?';
+        return (
+            <span style={{
+                display: 'inline-block', padding: '2px 8px', borderRadius: '4px',
+                fontSize: '.72rem', fontWeight: 700, background: c.bg, color: c.color,
+                minWidth: 32, textAlign: 'center'
+            }}>{label}</span>
+        );
+    }
+
+    /* ── ACTIVE PAIRS PANEL ────────────────────────────────── */
+    function ActivePairsPanel({ pairs, onToggleMirror }) {
+        if (!pairs || Object.keys(pairs).length === 0) return null;
+        return (
+            <div className="card" style={{marginBottom: 16}}>
+                <div className="card-header">
+                    <span className="card-title">Active Pairs</span>
+                    <span style={{fontSize: '.72rem', color: 'var(--text-muted)'}}>
+                        Last scan: {fmtTime(Date.now())}
+                    </span>
+                </div>
+                {Object.entries(pairs).map(([pair, ps]) => {
+                    const statusDot = ps.crash_lockout ? 'red' :
+                        ps.mirror_enabled ? 'green' : 'var(--text-muted)';
+                    const statusLabel = ps.crash_lockout ? 'Crash' :
+                        ps.mirror_enabled && ps.mt5_symbol_available ? 'Running' :
+                        !ps.mt5_symbol_available ? 'Unknown' : 'Disabled';
+                    const rc = regimeColor(ps.regime);
+                    return (
+                        <div key={pair} style={{
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            padding: '10px 0', borderBottom: '1px solid var(--border)',
+                            flexWrap: 'wrap'
+                        }}>
+                            <PairBadge pair={pair} />
+                            <span style={{
+                                width: 8, height: 8, borderRadius: '50%',
+                                background: statusDot === 'red' ? 'var(--red)' :
+                                    statusDot === 'green' ? 'var(--green)' : 'var(--text-muted)'
+                            }} />
+                            <span style={{fontSize: '.82rem', minWidth: 60}}>{statusLabel}</span>
+                            <span style={{fontSize: '.78rem', color: 'var(--text-dim)'}}>
+                                ${ps.grid_capital} capital
+                            </span>
+                            <span style={{fontSize: '.78rem'}}>
+                                Mirror [{ps.mirror_enabled ? 'ON' : 'OFF'}]
+                            </span>
+                            <span className={`regime-cell ${ps.regime}`} style={{fontSize: '.72rem'}}>
+                                {ps.regime}
+                            </span>
+                            {!ps.mt5_symbol_available && (
+                                <span style={{color: 'var(--amber)', fontSize: '.72rem'}}>
+                                    {ps.mt5_symbol} not found on MT5
+                                </span>
+                            )}
+                            <button
+                                className="btn"
+                                style={{marginLeft: 'auto', fontSize: '.72rem', padding: '4px 10px'}}
+                                onClick={() => onToggleMirror(pair, !ps.mirror_enabled)}
+                            >
+                                {ps.mirror_enabled ? 'Disable' : 'Enable'}
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    /* ── PER-PAIR REGIME CARDS ─────────────────────────────── */
+    function PairRegimeCards({ pairs }) {
+        if (!pairs || Object.keys(pairs).length === 0) return null;
+        return (
+            <div className="grid-2" style={{marginBottom: 16}}>
+                {Object.entries(pairs).map(([pair, ps]) => {
+                    const rc = regimeColor(ps.regime);
+                    return (
+                        <div key={pair} className={`card regime-panel ${rc}`}>
+                            <div className="card-header">
+                                <PairBadge pair={pair} />
+                                <span className={`regime-badge ${rc}`}>
+                                    <span className={`pulse-dot ${rc}`} />
+                                    {ps.regime}
+                                </span>
+                            </div>
+                            <div className="indicator-pills">
+                                <span className="pill">
+                                    <span className="pill-label">ATR</span>
+                                    <span className="pill-value">{ps.atr != null ? Number(ps.atr).toFixed(1) : '--'}</span>
+                                </span>
+                                <span className="pill">
+                                    <span className="pill-label">Slope</span>
+                                    <span className="pill-value">{ps.slope_pct != null ? Number(ps.slope_pct).toFixed(4) : '--'}</span>
+                                </span>
+                                <span className="pill">
+                                    <span className="pill-label">5m Drop</span>
+                                    <span className="pill-value">{fmtPct(ps.drop_5m_pct, 3)}</span>
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    /* ── MAIN APP ──────────────────────────────────────────── */
+    function App() {
+        const [status, setStatus] = useState(null);
+        const [fills, setFills] = useState([]);
+        const [ratios, setRatios] = useState([]);
+        const [regimeHistory, setRegimeHistory] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const fillRef = useRef(null);
+        const ratioTick = useRef(0);
+        const regimeTick = useRef(0);
+
+        const fetchStatus = useCallback(async () => {
+            try {
+                const r = await fetch(API + '/api/status');
+                const d = await r.json();
+                setStatus(d);
+                setLoading(false);
+            } catch (e) { console.error('Status fetch error:', e); }
+        }, []);
+
+        const fetchFills = useCallback(async () => {
+            try {
+                const r = await fetch(API + '/api/fills?limit=20');
+                const d = await r.json();
+                setFills(d);
+            } catch (e) { console.error('Fills fetch error:', e); }
+        }, []);
+
+        const fetchRatios = useCallback(async () => {
+            try {
+                const r = await fetch(API + '/api/ratio?limit=100');
+                const d = await r.json();
+                setRatios(d.reverse());
+            } catch (e) { console.error('Ratio fetch error:', e); }
+        }, []);
+
+        const fetchRegime = useCallback(async () => {
+            try {
+                const r = await fetch(API + '/api/regime?limit=20');
+                const d = await r.json();
+                setRegimeHistory(d);
+            } catch (e) { console.error('Regime fetch error:', e); }
+        }, []);
+
+        useEffect(() => {
+            fetchStatus();
+            fetchFills();
+            fetchRatios();
+            fetchRegime();
+
+            const id = setInterval(() => {
+                fetchStatus();
+                fetchFills();
+
+                ratioTick.current++;
+                if (ratioTick.current >= 3) {
+                    fetchRatios();
+                    ratioTick.current = 0;
+                }
+
+                regimeTick.current++;
+                if (regimeTick.current >= 6) {
+                    fetchRegime();
+                    regimeTick.current = 0;
+                }
+            }, 10000);
+
+            return () => clearInterval(id);
+        }, []);
+
+        useEffect(() => {
+            if (fillRef.current) {
+                fillRef.current.scrollTop = 0;
+            }
+        }, [fills]);
+
+        if (loading) {
+            return (
+                <div className="app">
+                    <header className="app-header">
+                        <div>
+                            <h1 className="app-title">Grid Mirror Bot</h1>
+                            <p className="app-subtitle">Loading dashboard…</p>
+                        </div>
+                    </header>
+                    <div className="shimmer" style={{height: 120, marginBottom: 16}} />
+                    <div className="grid-4">
+                        {[1,2,3,4].map(i => <div key={i} className="shimmer" style={{height: 100}} />)}
+                    </div>
+                </div>
+            );
+        }
+
+        const s = status || {};
+        const pairs = s.pairs || {};
+        const hasPairs = Object.keys(pairs).length > 0;
+        const rc = regimeColor(s.regime);
+        const rs = regimeStatus(s.regime);
+        const uptime = s.session_start ? (Date.now()/1000 - s.session_start) : 0;
+
+        async function toggleMirror(pair, enabled) {
+            const cmd = enabled ? `mirror_on_${pair}` : `mirror_off_${pair}`;
+            await postCommand(cmd);
+            fetchStatus();
+        }
+
+        async function closePairPositions(mt5Symbol) {
+            if (!confirm(`Close all positions for ${mt5Symbol}?`)) return;
+            await postCommand(`close_${mt5Symbol}`);
+            fetchStatus();
+        }
+
+        /* drawdown calculations */
+        const riskDaily = s.mt5_daily_loss || 0;
+        const riskDailyPct = Math.abs(riskDaily * 100);
+        const riskDailyLimit = 4.0;
+        const riskDailyFill = Math.min((riskDailyPct / riskDailyLimit) * 100, 100);
+
+        const peakEq = s.mt5_peak_equity || 1;
+        const curEq = s.mt5_equity || 0;
+        const maxDDPct = peakEq > 0 ? ((peakEq - curEq) / peakEq) * 100 : 0;
+        const maxDDLimit = 10.0;
+        const maxDDFill = Math.min((maxDDPct / maxDDLimit) * 100, 100);
+
+        const estPayout = (curEq > 0) ? (curEq * 0.9 / 12) : 0;
+
+        return (
+            <div className="app">
+                <header className="app-header">
+                    <div>
+                        <h1 className="app-title">Grid Mirror Bot</h1>
+                        <p className="app-subtitle">Week 3 — Full System Dashboard</p>
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                        <div style={{color: 'var(--text-dim)', fontSize: '.78rem'}}>
+                            BTC {fmt$(s.btc_price)}
+                        </div>
+                        <div style={{color: 'var(--text-muted)', fontSize: '.72rem'}}>
+                            Updated {fmtTime(Date.now())}
+                        </div>
+                    </div>
+                </header>
+
+                {/* CRASH BANNER */}
+                {s.regime === 'CRASH' && (
+                    <div className="crash-banner">
+                        <div className="crash-title">🚨 CRASH PROTOCOL ACTIVE</div>
+                        <div className="crash-detail">
+                            BTC dropped {fmtPct(s.drop_5m_pct, 3)} in 5 minutes.
+                            All positions closed. Bot is locked.
+                            Send /start to resume after confirming recovery.
+                        </div>
+                    </div>
+                )}
+
+                <div className="stack">
+
+                    {/* ── Panel 0: Active Pairs (Week 4) ────────── */}
+                    {hasPairs && <ActivePairsPanel pairs={pairs} onToggleMirror={toggleMirror} />}
+
+                    {/* ── Panel 0b: Per-Pair Regime Cards (Week 4) ─ */}
+                    {hasPairs && <PairRegimeCards pairs={pairs} />}
+
+                    {/* ── Panel 1: Regime Detector ──────────────── */}
+                    <div className={`card regime-panel ${rc}`} id="panel-regime">
+                        <div className="card-header">
+                            <span className="card-title">Regime Detector</span>
+                            <span className={`regime-badge ${rs.cls}`}>
+                                <span className={`pulse-dot ${rs.cls}`} />
+                                {rs.label}
+                            </span>
+                        </div>
+                        <div className={`regime-name`} style={{color: `var(--${rc})`}}>
+                            {s.regime || 'LOADING'}
+                        </div>
+                        <div className="indicator-pills">
+                            <span className="pill">
+                                <span className="pill-label">ATR</span>
+                                <span className="pill-value">{s.atr != null ? Number(s.atr).toFixed(1) : '—'}</span>
+                            </span>
+                            <span className="pill">
+                                <span className="pill-label">Slope</span>
+                                <span className="pill-value">{s.slope_pct != null ? Number(s.slope_pct).toFixed(4) + '%/h' : '—'}</span>
+                            </span>
+                            <span className="pill">
+                                <span className="pill-label">Band 24h</span>
+                                <span className="pill-value">{s.band_24h != null ? (Number(s.band_24h)*100).toFixed(1) + '%' : '—'}</span>
+                            </span>
+                            <span className="pill">
+                                <span className="pill-label">5m Drop</span>
+                                <span className="pill-value" style={{color: (s.drop_5m_pct||0) > 1 ? 'var(--red)' : 'var(--text)'}}>
+                                    {fmtPct(s.drop_5m_pct, 3)}
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* ── Panel 2: Account Overview ─────────────── */}
+                    <div className="grid-4" id="panel-accounts">
+                        <div className="card">
+                            <div className="card-title">Binance Balance</div>
+                            <div className="metric-value" style={{marginTop: 8}}>{fmt$(s.binance_balance)}</div>
+                            <div className="metric-label">Testnet Spot</div>
+                        </div>
+                        <div className="card">
+                            <div className="card-title">FundedNext Equity</div>
+                            <div className="metric-value" style={{marginTop: 8}}>{fmt$(s.mt5_equity)}</div>
+                            <div className={`metric-change ${riskDaily >= 0 ? 'positive' : 'negative'}`}>
+                                {riskDaily >= 0 ? '▲' : '▼'} {fmtPct(riskDailyPct)} today
+                            </div>
+                        </div>
+                        <div className="card">
+                            <div className="card-title">Live Scale Ratio</div>
+                            <div className="metric-value" style={{marginTop: 8}}>{fmtRatio(s.smoothed_ratio || s.scale_ratio)}</div>
+                            <div className="metric-label">Smoothed</div>
+                        </div>
+                        <div className="card">
+                            <div className="card-title">Est. Monthly Payout</div>
+                            <div className="metric-value" style={{marginTop: 8, color: 'var(--green)'}}>{fmt$(estPayout)}</div>
+                            <div className="metric-label">at 90% split</div>
+                        </div>
+                    </div>
+
+                    {/* ── Panel 3: Drawdown Monitor ─────────────── */}
+                    <div className="grid-2" id="panel-drawdown">
+                        <div className="card">
+                            <div className="card-header">
+                                <span className="card-title">Daily Loss</span>
+                                <span className={`regime-badge ${s.kill_switch_daily ? 'red' : (riskDailyFill >= 75 ? 'red' : riskDailyFill >= 50 ? 'amber' : 'green')}`}>
+                                    {s.kill_switch_daily ? 'KILL SWITCH' : riskDailyFill >= 75 ? 'Warning' : 'Safe'}
+                                </span>
+                            </div>
+                            <div className="progress-wrap">
+                                <div className={`progress-bar ${progressColor(riskDailyFill)}`} style={{width: riskDailyFill + '%'}} />
+                            </div>
+                            <div className="progress-meta">
+                                <span>{fmtPct(riskDailyPct)} used / {fmtPct(riskDailyLimit)} limit</span>
+                                <span>Kill at {fmtPct(riskDailyLimit * 0.8)}</span>
+                            </div>
+                        </div>
+                        <div className="card">
+                            <div className="card-header">
+                                <span className="card-title">Max Drawdown</span>
+                                <span className={`regime-badge ${s.kill_switch_drawdown ? 'red' : (maxDDFill >= 75 ? 'red' : maxDDFill >= 50 ? 'amber' : 'green')}`}>
+                                    {s.kill_switch_drawdown ? 'KILL SWITCH' : maxDDFill >= 75 ? 'Warning' : 'Safe'}
+                                </span>
+                            </div>
+                            <div className="progress-wrap">
+                                <div className={`progress-bar ${progressColor(maxDDFill)}`} style={{width: maxDDFill + '%'}} />
+                            </div>
+                            <div className="progress-meta">
+                                <span>{fmtPct(maxDDPct)} used / {fmtPct(maxDDLimit)} limit</span>
+                                <span>Kill at {fmtPct(maxDDLimit * 0.8)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Panel 4: Bot Controls ─────────────────── */}
+                    <ControlPanel status={s} />
+
+                    {/* ── Panel 5 & 6: Fills + Chart ───────────── */}
+                    <div className="grid-2">
+                        <div className="card" id="panel-fills">
+                            <div className="card-header">
+                                <span className="card-title">Live Fill Feed</span>
+                                <span style={{fontSize: '.72rem', color: 'var(--text-muted)'}}>{fills.length} fills</span>
+                            </div>
+                            <div className="fill-list" ref={fillRef}>
+                                {fills.length === 0 ? (
+                                    <div style={{color: 'var(--text-muted)', textAlign: 'center', padding: '20px'}}>No fills yet</div>
+                                ) : fills.map((f, i) => (
+                                    <div key={f.id || i} className="fill-row">
+                                        <PairBadge pair={f.symbol} />
+                                        <span className={`fill-badge ${f.side}`}>{f.side}</span>
+                                        <span className="fill-qty">{Number(f.binance_qty || f.qty || 0).toFixed(5)}</span>
+                                        <span className="fill-price">@ {fmt$(f.binance_price || f.price)}</span>
+                                        <span className="fill-time">{fmtTime(f.timestamp)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="card" id="panel-ratio-chart">
+                            <div className="card-header">
+                                <span className="card-title">Scale Ratio History</span>
+                            </div>
+                            <div className="chart-container">
+                                {!CHARTS_AVAILABLE ? (
+                                    <div style={{color: 'var(--text-muted)', textAlign: 'center', padding: '40px'}}>Charts unavailable — Recharts CDN did not load</div>
+                                ) : ratios.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={ratios} margin={{top: 5, right: 10, bottom: 5, left: 0}}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                            <XAxis
+                                                dataKey="timestamp"
+                                                tickFormatter={(t) => fmtTime(t)}
+                                                tick={{fill: 'var(--text-muted)', fontSize: 11}}
+                                                stroke="var(--border)"
+                                            />
+                                            <YAxis
+                                                tick={{fill: 'var(--text-muted)', fontSize: 11}}
+                                                stroke="var(--border)"
+                                                domain={['auto', 'auto']}
+                                            />
+                                            <Tooltip
+                                                contentStyle={{background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12}}
+                                                labelFormatter={(t) => fmtTime(t)}
+                                            />
+                                            <ReferenceLine y={10} stroke="var(--amber)" strokeDasharray="5 5" label={{value: 'Min 10x', fill: 'var(--amber)', fontSize: 10}} />
+                                            <ReferenceLine y={500} stroke="var(--red)" strokeDasharray="5 5" label={{value: 'Max 500x', fill: 'var(--red)', fontSize: 10}} />
+                                            <Line type="monotone" dataKey="smoothed_ratio" stroke="var(--cyan)" strokeWidth={2} dot={false} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div style={{color: 'var(--text-muted)', textAlign: 'center', padding: '40px'}}>No ratio data yet</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Panel 7: Regime History ───────────────── */}
+                    <div className="card" id="panel-regime-history">
+                        <div className="card-header">
+                            <span className="card-title">Regime History</span>
+                        </div>
+                        {regimeHistory.length === 0 ? (
+                            <div style={{color: 'var(--text-muted)', textAlign: 'center', padding: '20px'}}>No regime changes recorded</div>
+                        ) : (
+                            <table className="regime-table">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Previous</th>
+                                        <th>New Regime</th>
+                                        <th>ATR</th>
+                                        <th>Slope</th>
+                                        <th>Band</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {regimeHistory.map((r, i) => (
+                                        <tr key={r.id || i}>
+                                            <td style={{color: 'var(--text-muted)'}}>{r.datetime || fmtTime(r.timestamp)}</td>
+                                            <td><span className={`regime-cell ${r.prev_regime}`}>{r.prev_regime || '—'}</span></td>
+                                            <td><span className={`regime-cell ${r.regime}`}>{r.regime}</span></td>
+                                            <td>{r.atr != null ? Number(r.atr).toFixed(1) : '—'}</td>
+                                            <td>{r.slope_pct != null ? Number(r.slope_pct).toFixed(4) : '—'}</td>
+                                            <td>{r.band_24h != null ? (Number(r.band_24h)*100).toFixed(1) + '%' : '—'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── Panel 8: Connection Status Bar ────────────── */}
+                <div className="status-bar" id="panel-status-bar">
+                    <div className="status-item">
+                        <span className={`status-dot ${s.mt5_connected ? 'connected' : 'disconnected'}`} />
+                        MT5: {s.mt5_connected ? 'Connected' : 'Disconnected'}
+                    </div>
+                    {hasPairs && Object.entries(pairs).map(([pair, ps]) => (
+                        <div key={pair} className="status-item" style={{gap: 3}}>
+                            <span style={{fontSize: '.68rem', marginRight: 2}}>{pair.replace('USDT','')}</span>
+                            <span className={`status-dot ${ps.watcher_alive ? 'connected' : 'disconnected'}`} title="Watcher" />
+                            <span className={`status-dot ${ps.regime_detector_alive ? 'connected' : 'disconnected'}`} title="Regime" />
+                            <span className={`status-dot ${ps.crash_monitor_alive ? 'connected' : 'disconnected'}`} title="Crash" />
+                            <span className={`status-dot ${ps.reconciler_alive ? 'connected' : 'disconnected'}`} title="Reconciler" />
+                        </div>
+                    ))}
+                    {!hasPairs && (
+                        <>
+                            <div className="status-item">
+                                <span className="status-dot connected" />
+                                Binance WS: Connected
+                            </div>
+                            <div className="status-item">
+                                <span className={`status-dot ${s.crash_lockout ? 'triggered' : 'active'}`} />
+                                Crash: {s.crash_lockout ? 'Triggered' : 'Active'}
+                            </div>
+                        </>
+                    )}
+                    <div className="status-item">
+                        WS: <span className="status-dot connected" />
+                    </div>
+                    <div className="status-item">
+                        ⏱ {fmtUptime(uptime)}
+                    </div>
+                    <div className="status-item" style={{color: 'var(--text-muted)'}}>
+                        Heartbeat {fmtTime(Date.now())}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    /* ── CONTROL PANEL COMPONENT ───────────────────────────── */
+    function ControlPanel({ status: s }) {
+        const [cmdLoading, setCmdLoading] = useState({});
+        const [confirmClose, setConfirmClose] = useState(false);
+        const pairs = s.pairs || {};
+        const hasPairs = Object.keys(pairs).length > 0;
+
+        async function sendCmd(cmd) {
+            setCmdLoading(prev => ({...prev, [cmd]: true}));
+            try {
+                await postCommand(cmd);
+            } catch (e) {
+                console.error('Command error:', e);
+            }
+            setCmdLoading(prev => ({...prev, [cmd]: false}));
+        }
+
+        return (
+            <div className="card" id="panel-controls">
+                <div className="card-header">
+                    <span className="card-title">Bot Controls</span>
+                </div>
+
+                {/* Row 1: Binance Grid */}
+                <div className="control-row">
+                    <div className="control-left">
+                        <span className="control-name">Binance Grid</span>
+                        <span className="control-status">
+                            {s.grid_restart_due ? 'Restart pending' : 'Running'}
+                        </span>
+                    </div>
+                    <div className="control-actions">
+                        <button
+                            className="btn"
+                            onClick={() => sendCmd('restartgrid')}
+                            disabled={cmdLoading.restartgrid}
+                        >
+                            {cmdLoading.restartgrid ? '…' : '↻ Restart Grid'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Per-pair mirror controls (Week 4) */}
+                {hasPairs && Object.entries(pairs).map(([pair, ps]) => (
+                    <div key={pair} className="control-row">
+                        <div className="control-left">
+                            <span className="control-name" style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                                <PairBadge pair={pair} /> Mirror
+                            </span>
+                            <span className="control-status">
+                                {ps.mirror_enabled ? 'Mirroring active' : 'Paused'}
+                            </span>
+                        </div>
+                        <div className="control-actions">
+                            <button
+                                className={`toggle ${ps.mirror_enabled ? 'on' : ''}`}
+                                onClick={() => sendCmd(ps.mirror_enabled ? `mirror_off_${pair}` : `mirror_on_${pair}`)}
+                                aria-label={`Toggle mirror ${pair}`}
+                            />
+                            <button
+                                className="btn btn-danger"
+                                style={{fontSize: '.72rem', padding: '4px 10px'}}
+                                onClick={() => {
+                                    if (confirm(`Close all ${ps.mt5_symbol} positions?`)) sendCmd(`close_${ps.mt5_symbol}`);
+                                }}
+                            >
+                                Close {ps.mt5_symbol}
+                            </button>
+                        </div>
+                    </div>
+                ))}
+
+                {/* Row 2: Global Mirror Bot (single-pair fallback) */}
+                {!hasPairs && (
+                    <div className="control-row">
+                        <div className="control-left">
+                            <span className="control-name">Mirror Bot</span>
+                            <span className="control-status">
+                                {s.mirror_enabled ? 'Mirroring active' : 'Mirroring paused'}
+                            </span>
+                        </div>
+                        <div className="control-actions">
+                            <button
+                                className={`toggle ${s.mirror_enabled ? 'on' : ''}`}
+                                onClick={() => sendCmd(s.mirror_enabled ? 'stop' : 'start')}
+                                disabled={cmdLoading.start || cmdLoading.stop}
+                                aria-label="Toggle mirror"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Row 3: Close All Positions */}
+                <div className="control-row">
+                    <div className="control-left">
+                        <span className="control-name">All Positions</span>
+                        <span className="control-status">
+                            Net: {s.mt5_net_position != null ? Number(s.mt5_net_position).toFixed(4) + ' BTC' : '—'}
+                        </span>
+                    </div>
+                    <div className="control-actions">
+                        {!confirmClose ? (
+                            <button
+                                className="btn btn-danger"
+                                onClick={() => setConfirmClose(true)}
+                            >
+                                Close ALL Positions
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={async () => {
+                                        await sendCmd('closeall');
+                                        setConfirmClose(false);
+                                    }}
+                                    disabled={cmdLoading.closeall}
+                                >
+                                    {cmdLoading.closeall ? '…' : '⚠ Confirm Close ALL'}
+                                </button>
+                                <button
+                                    className="btn"
+                                    onClick={() => setConfirmClose(false)}
+                                >
+                                    Cancel
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    /* ── RENDER ─────────────────────────────────────────────── */
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+    </script>
+</body>
+</html>

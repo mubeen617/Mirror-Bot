@@ -1,0 +1,36 @@
+# Secrets and credentials
+grid_mirror_bot/config/secrets.env
+*.env
+!*.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Database
+grid_mirror_bot/db/
+
+# Logs
+grid_mirror_bot/logs/
+
+# graphify output
+graphify-out/
+
+# OS files
+Thumbs.db
+.DS_Store
